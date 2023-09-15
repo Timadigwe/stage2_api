@@ -8,7 +8,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        DATABASE_URL: postgres://postgres:postgres@db:5432/postgres
+        DATABASE_URL: postgres://timdb_user:7BEEZBEFepTJizYHIjLkX4N587ZoVwNr@dpg-ck20iu7hdsdc73e02bhg-a.oregon-postgres.render.com/timdb
     ports:
       - "8080:8080"
     depends_on:
@@ -16,13 +16,13 @@ services:
 
   db:
     container_name: db
-    image: "postgres:12"
+    image: "postgres:15"
     ports:
       - "5432:5432"
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=postgres
+      - POSTGRES_USER=timdb_user
+      - POSTGRES_PASSWORD=7BEEZBEFepTJizYHIjLkX4N587ZoVwNr
+      - POSTGRES_DB=timdb
     volumes:
       - pgdata:/var/lib/postgresql/data
 
