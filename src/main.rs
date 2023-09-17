@@ -3,9 +3,12 @@ use postgres::Error as PostgresError;
 use std::net::{ TcpListener, TcpStream };
 use std::io::{ Read, Write };
 use std::env;
+use dotenv;
 
 #[macro_use]
 extern crate serde_derive;
+
+
 
 //Model: User struct with id, name, email
 #[derive(Serialize, Deserialize)]
@@ -16,7 +19,11 @@ struct User {
 }
 
 //DATABASE URL
-const DB_URL: &str = env!("DATABASE_URL");
+//const DB_URL: &str = "postgres://timdb_user:7BEEZBEFepTJizYHIjLkX4N587ZoVwNr@dpg-ck20iu7hdsdc73e02bhg-a.oregon-postgres.render.com/timdb";
+//const DB_URL: &str = env!("DATABASE_URL");
+//let DB_URL = std::env::var("DATABASE_URL").unwrap_or(DB_URL_DEFAULT);
+
+const DB_URL = env::var("DATABASE_URL").expect("DATABASE_URL not set");
 
 //constants
 const OK_RESPONSE: &str = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n";
@@ -25,7 +32,14 @@ const INTERNAL_ERROR: &str = "HTTP/1.1 500 INTERNAL ERROR\r\n\r\n";
 
 //main function
 fn main() {
+
+    #[cfg(debug_assertions)]
+    dotenv::dotenv().ok();
     //Set Database
+
+    
+
+
     if let Err(_) = set_database() {
         println!("Error setting database");
         return;
@@ -73,7 +87,7 @@ fn handle_client(mut stream: TcpStream) {
 
 //handle post request
 fn handle_post_request(request: &str) -> (String, String) {
-    match (get_user_request_body(&request), Client::connect(DB_URL, NoTls)) {
+    match (get_user_request_body(&request), Client::connect(&DB_URL, NoTls)) {
         (Ok(user), Ok(mut client)) => {
             client
                 .execute(
@@ -90,7 +104,7 @@ fn handle_post_request(request: &str) -> (String, String) {
 
 //handle get request
 fn handle_get_request(request: &str) -> (String, String) {
-    match (get_id(&request).parse::<i32>(), Client::connect(DB_URL, NoTls)) {
+    match (get_id(&request).parse::<i32>(), Client::connect(&DB_URL, NoTls)) {
         (Ok(id), Ok(mut client)) =>
             match client.query_one("SELECT * FROM users WHERE id = $1", &[&id]) {
                 Ok(row) => {
@@ -111,7 +125,7 @@ fn handle_get_request(request: &str) -> (String, String) {
 
 //handle get all request
 fn handle_get_all_request(_request: &str) -> (String, String) {
-    match Client::connect(DB_URL, NoTls) {
+    match Client::connect(&DB_URL, NoTls) {
         Ok(mut client) => {
             let mut users = Vec::new();
 
@@ -135,7 +149,7 @@ fn handle_put_request(request: &str) -> (String, String) {
         (
             get_id(&request).parse::<i32>(),
             get_user_request_body(&request),
-            Client::connect(DB_URL, NoTls),
+            Client::connect(&DB_URL, NoTls),
         )
     {
         (Ok(id), Ok(user), Ok(mut client)) => {
@@ -154,7 +168,7 @@ fn handle_put_request(request: &str) -> (String, String) {
 
 //handle delete request
 fn handle_delete_request(request: &str) -> (String, String) {
-    match (get_id(&request).parse::<i32>(), Client::connect(DB_URL, NoTls)) {
+    match (get_id(&request).parse::<i32>(), Client::connect(&DB_URL, NoTls)) {
         (Ok(id), Ok(mut client)) => {
             let rows_affected = client.execute("DELETE FROM users WHERE id = $1", &[&id]).unwrap();
 
@@ -171,7 +185,7 @@ fn handle_delete_request(request: &str) -> (String, String) {
 
 //db setup
 fn set_database() -> Result<(), PostgresError> {
-    let mut client = Client::connect(DB_URL, NoTls)?;
+    let mut client = Client::connect(&DB_URL, NoTls)?;
     client.batch_execute(
         "
         CREATE TABLE IF NOT EXISTS users (
